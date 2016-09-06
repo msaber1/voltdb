@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.voltdb.BackendTarget;
+import org.voltdb.VoltDB;
 import org.voltdb.client.Client;
 import org.voltdb.client.ClientResponse;
 import org.voltdb.client.ProcCallException;
@@ -40,7 +41,7 @@ public class TestPrepareShutdown extends RegressionSuite
 
     public void testPrepareShutdown() throws Exception {
 
-        final Client client = getClient();
+        final Client client = getAdminClient();
         Thread.sleep(5000);
         ClientResponse resp = client.callProcedure("@PrepareShutdown");
         assertTrue(resp.getStatus() == ClientResponse.SUCCESS);
@@ -65,7 +66,7 @@ public class TestPrepareShutdown extends RegressionSuite
         LocalCluster config = new LocalCluster("client-all-partitions.jar", 4, 2, 0, BackendTarget.NATIVE_EE_JNI,
                 LocalCluster.FailureState.ALL_RUNNING, true, false, additionalEnv);
         config.setHasLocalServer(false);
-        boolean compile = config.compile(project);
+        boolean compile = config.compileWithAdminMode(project, VoltDB.DEFAULT_ADMIN_PORT, false); //config.compile(project);
         assertTrue(compile);
         builder.addServerConfig(config);
         return builder;
