@@ -102,7 +102,7 @@ public final class InvocationDispatcher {
     private final long m_plannerSiteId;
     private final long m_siteId;
     private final Mailbox m_mailbox;
-    //This validator will verify params or per procedure invocation vaidation.
+    //This validator will verify params or per procedure invocation validation.
     private final InvocationValidator m_invocationValidator;
     //This validator will check permissions in AUTH system.
     private final PermissionValidator m_permissionValidator = new PermissionValidator();
@@ -277,18 +277,14 @@ public final class InvocationDispatcher {
             return unexpectedFailureResponse(errorMessage, task.clientHandle);
         }
 
-        if (VoltDB.instance().getMode() == OperationMode.PAUSED && VoltDB.instance().isShuttingdown()
-                && !catProc.getAllowedinshutdown()) {
-            return new ClientResponseImpl(ClientResponseImpl.SERVER_UNAVAILABLE,
-                    new VoltTable[0], "Server shutdown in progress - new transactions are not processed.",
-                    task.clientHandle);
-        }
-
         // Check for pause mode restrictions before proceeding any further
         if (!allowPauseModeExecution(handler, catProc, task)) {
+            String msg = "Server is paused and is available in read-only mode - please try again later.";
+            if (VoltDB.instance().isShuttingdown()) {
+                msg = "Server shutdown in progress - new transactions are not processed.";
+            }
             return new ClientResponseImpl(ClientResponseImpl.SERVER_UNAVAILABLE,
-                    new VoltTable[0], "Server is paused and is available in read-only mode - please try again later.",
-                    task.clientHandle);
+                    new VoltTable[0], msg,task.clientHandle);
         }
 
         ClientResponseImpl error = null;
@@ -510,6 +506,11 @@ public final class InvocationDispatcher {
     }
 
     private final static boolean allowPauseModeExecution(InvocationClientHandler handler, Procedure procedure, StoredProcedureInvocation invocation) {
+        if (VoltDB.instance().getMode() == OperationMode.PAUSED && VoltDB.instance().isShuttingdown()
+                && !procedure.getAllowedinshutdown()) {
+            return false;
+        }
+
         if (VoltDB.instance().getMode() != OperationMode.PAUSED || handler.isAdmin()) {
             return true;
         }
